@@ -3,6 +3,11 @@
 indent() {
   sed -u 's/^/       /'
 }
+install() {
+  curl -s "$1" >pkg.deb
+  dpkg -x pkg.deb "$2"
+  rm pkg.deb
+}
 echo "-----> Checking dependency for heroku stack "
 # Define required Debian packages for each Heroku stack. Cedar-14 already
 # contains all the dependencies for Graphviz, so only the Graphviz package
