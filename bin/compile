@@ -3,6 +3,27 @@
 indent() {
   sed -u 's/^/       /'
 }
+echo "-----> Checking dependency for heroku stack "
+# Define required Debian packages for each Heroku stack. Cedar-14 already
+# contains all the dependencies for Graphviz, so only the Graphviz package
+# needs to be installed. Heroku-16 misses some dependencies in the form of
+# shared libraries, and they must be additonally installed.
+case "$STACK" in
+  heroku-16)
+    graphviz_version="2.38.0"
+    packages=(graphviz_2.38.0-12ubuntu2_amd64.deb
+              libgvc6_2.38.0-12ubuntu2_amd64.deb
+              libcgraph6_2.38.0-12ubuntu2_amd64.deb
+              libcdt5_2.38.0-12ubuntu2_amd64.deb
+              libpathplan4_2.38.0-12ubuntu2_amd64.deb) ;;
+  cedar-14)
+    graphviz_version="2.36.0"
+    packages=graphviz_2.36.0-0ubuntu3.1_amd64.deb ;;
+  *)
+    echo "Buildpack error: unsupported stack $STACK" | a
+    exit 1 ;;
+esac
+
 
 echo "-----> Install ImageMagick"
 
@@ -14,6 +35,14 @@ INSTALL_DIR="$VENDOR_DIR/imagemagick"
 mkdir -p $INSTALL_DIR
 IMAGE_MAGICK_VERSION="${IMAGE_MAGICK_VERSION:-6.9.5-10}"
 CACHE_FILE="$CACHE_DIR/imagemagick-$IMAGE_MAGICK_VERSION.tar.gz"
+
+# This URL can be found out with: apt-cache show graphviz | grep Filename
+base_url="http://archive.ubuntu.com/ubuntu/pool/main/g/graphviz"
+echo "Installing the following packages:" | a
+for p in "${packages[@]}"; do
+  echo "    * $p" | i
+  install "$base_url/$p" "$1/$INSTALL_DIR"
+done
 
 if [ ! -f $CACHE_FILE ]; then
   # install imagemagick
